@@ -13,6 +13,6 @@ export default class TwogisRouter extends TwogisController {
 
   public initializeRoutes(): void {
     // add routers here
-    this.router.get(this.path, this.crawlTwogis);
+    this.router.post(this.path, this.crawlTwogis);
   }
 }

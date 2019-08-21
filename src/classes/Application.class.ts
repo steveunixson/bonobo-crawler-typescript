@@ -9,6 +9,7 @@ import MongooseConnection from '../classes/MongoDBConnection.class';
 import ConfigClass from './Config.class';
 import IndexRouter from '../routes/Index.router';
 import log from '../helpers/WinstonLogger.class';
+import TwogisRouter from '../routes/Twogis.router';
 
 export default class App {
   private readonly app: Express;
@@ -38,6 +39,7 @@ export default class App {
     }));
     this.app.use(morgan('dev'));
     this.app.use(new IndexRouter().router);
+    this.app.use(new TwogisRouter().router);
     this.mongo = new MongooseConnection(`mongodb://localhost:${this.mongoPort}/octopus`, {
       useNewUrlParser: true,
       autoReconnect: true,

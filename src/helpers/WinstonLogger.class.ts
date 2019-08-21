@@ -2,7 +2,7 @@ import winston, { LoggerOptions, format } from 'winston';
 import chalk from 'chalk';
 
 
-const octopusFormat = format.printf((info): string => `${chalk.magentaBright('[OCTOPUS SERVER]')} | ${info.timestamp} | ${info.level}: ${info.message}`);
+const octopusFormat = format.printf((info): string => `${chalk.yellowBright('[BONOBO CRAWLER]')} | ${info.timestamp} | ${info.level}: ${info.message}`);
 
 const options: LoggerOptions = {
   level: 'debug',
