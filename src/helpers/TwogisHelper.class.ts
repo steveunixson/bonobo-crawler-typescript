@@ -16,6 +16,7 @@ export default class TwogisHelperClass {
     companyAddress: 'address.card__address',
     companyPhoneToggle: 'div.contact__toggle._place_phones',
     companyPhonesGroup: '.contact__phones._shown',
+    companyVisiblePhones: '.contact__phonesVisible > div.contact__phonesItem._type_phone',
     companyCity: '.card__addressDrilldown._purpose_drilldown',
     companyTags: '.cardRubrics',
     companyWorkHours: '.schedule._context_firmCard._state_collapsed',

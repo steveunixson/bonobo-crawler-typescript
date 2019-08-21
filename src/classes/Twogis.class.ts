@@ -135,6 +135,36 @@ export default class TwogisClass {
       } catch (e) {
         await log.error(`EXCEPTION CAUGHT: NO PHONE NUMBER FOUND! ${e.toString()}`);
       }
+
+      try {
+        const Phones = await newPage.$$(helper.selectors.companyVisiblePhones);
+        const Name = await newPage.$(helper.selectors.companyName);
+        const Address = await newPage.$(helper.selectors.companyAddress);
+        const City = await newPage.$(helper.selectors.companyCity);
+        const Tags = await newPage.$(helper.selectors.companyTags);
+        const WorkHours = await newPage.$(helper.selectors.companyWorkHours);
+        const Url = await newPage.url();
+        const UnixTime = new Date().getTime();
+
+        const phones = await Phones.map(async (el): Promise<string> => (await el.getProperty('innerText')).jsonValue());
+        if (City && Tags && Name && WorkHours && Address) {
+          const name = await City.getProperty('innerText');
+          const tags = await Tags.getProperty('innerText');
+          const workHours = await WorkHours.getProperty('innerText');
+          const address = await Address.getProperty('innerText');
+          await console.log({
+            phones,
+            name,
+            tags,
+            workHours,
+            address,
+            Url,
+            UnixTime,
+          });
+        }
+      } catch (e) {
+        await log.error(`EXCEPTION CAUGHT: BAD COMPANY! ${e.toString()}`);
+      }
     }
     try {
       await newPage.close();
