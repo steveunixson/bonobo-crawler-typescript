@@ -7,7 +7,6 @@
 import { Document } from 'mongoose';
 
 export default interface TwogisModelInterface extends Document {
-  id: number;
   phoneNumber: string;
   companyName: string;
   address: string;

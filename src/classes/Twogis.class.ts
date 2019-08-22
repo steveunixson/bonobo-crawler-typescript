@@ -3,6 +3,8 @@ import puppeteer, { Browser, Page } from 'puppeteer';
 import express from 'express';
 import helper from '../helpers/TwogisHelper.class';
 import log from '../helpers/WinstonLogger.class';
+import TwogisSchema from '../models/Twogis.model';
+import TwogisInterface from '../interfaces/Twogis.interface';
 
 export default class TwogisClass {
   private width: number = 1440;
@@ -22,6 +24,8 @@ export default class TwogisClass {
   public browser: Promise<Browser>;
 
   public page: Promise<Page>;
+
+  public result: TwogisInterface[] = [];
 
   public constructor(req: express.Request) {
     this.search = req.body.search;
@@ -46,7 +50,7 @@ export default class TwogisClass {
       const browser = await this.browser;
       await browser.close();
     } catch (e) {
-      console.log(e);
+      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
     }
   }
 
@@ -111,66 +115,48 @@ export default class TwogisClass {
     const page = await this.page;
     await page.waitForSelector(helper.selectors.miniCards);
     const cards = await page.$$(helper.selectors.miniCards);
-    const hrefs = await cards.map(async (el): Promise<string> => (await el.getProperty('href')).jsonValue());
-    const links = await Promise.all(hrefs);
-    return links;
+    const href = await cards.map(async (el): Promise<string> => (await el.getProperty('href')).jsonValue());
+    return Promise.all(href);
+  }
+
+  private async saveCompany(company: TwogisInterface): Promise<void> {
+    const twogis = new TwogisSchema(company);
+    try {
+      await twogis.save();
+      this.result.push(company);
+    } catch (e) {
+      this.result.push(company);
+      log.error(`EXCEPTION: ${e.toString()}`);
+    }
   }
 
   private async collectCompany(): Promise<void> {
     const newPage = await this.initPage();
     const companyLinks = await this.collectCards();
     for (const link of companyLinks) {
-      try {
-        await newPage.goto(link);
-        await newPage.waitForSelector(helper.selectors.companyCard);
-        await newPage.waitForSelector(helper.selectors.companyName);
-        await newPage.waitForSelector(helper.selectors.companyAddress);
-        await newPage.waitForSelector(helper.selectors.companyPhoneToggle);
-      } catch (e) {
-        await log.error(`EXCEPTION CAUGHT: BAD COMPANY! ${e.toString()}`);
-      }
-      try {
-        await newPage.focus(helper.selectors.companyPhoneToggle);
-        await newPage.click(helper.selectors.companyPhoneToggle);
-      } catch (e) {
-        await log.error(`EXCEPTION CAUGHT: NO PHONE NUMBER FOUND! ${e.toString()}`);
-      }
-
-      try {
-        const Phones = await newPage.$$(helper.selectors.companyVisiblePhones);
-        const Name = await newPage.$(helper.selectors.companyName);
-        const Address = await newPage.$(helper.selectors.companyAddress);
-        const City = await newPage.$(helper.selectors.companyCity);
-        const Tags = await newPage.$(helper.selectors.companyTags);
-        const WorkHours = await newPage.$(helper.selectors.companyWorkHours);
-        const Url = await newPage.url();
-        const UnixTime = new Date().getTime();
-
-        const phones = await Phones.map(async (el): Promise<string> => (await el.getProperty('innerText')).jsonValue());
-        if (City && Tags && Name && WorkHours && Address) {
-          const name = await City.getProperty('innerText');
-          const tags = await Tags.getProperty('innerText');
-          const workHours = await WorkHours.getProperty('innerText');
-          const address = await Address.getProperty('innerText');
-          await console.log({
-            phones,
-            name,
-            tags,
-            workHours,
-            address,
-            Url,
-            UnixTime,
-          });
-        }
-      } catch (e) {
-        await log.error(`EXCEPTION CAUGHT: BAD COMPANY! ${e.toString()}`);
-      }
+      await newPage.goto(link);
+      await newPage.waitForSelector(helper.selectors.companyPhoneToggle);
+      await newPage.focus(helper.selectors.companyPhoneToggle);
+      await newPage.click(helper.selectors.companyPhoneToggle);
+      const phones = await helper.getData(newPage, helper.selectors.companyVisiblePhones, 'innerText');
+      const name = await helper.getData(newPage, helper.selectors.companyName, 'innerText');
+      const address = await helper.getData(newPage, helper.selectors.companyAddress, 'innerText');
+      const city = await helper.getData(newPage, helper.selectors.companyCity, 'innerText');
+      const tags = await helper.getData(newPage, helper.selectors.companyTags, 'innerText');
+      const workHours = await helper.getData(newPage, helper.selectors.companyWorkHours, 'innerText');
+      const site = await helper.getData(newPage, helper.selectors.companyWebSite, 'innerText');
+      await this.saveCompany({
+        phoneNumber: phones,
+        companyName: name,
+        address,
+        city,
+        site,
+        search: this.search,
+        tags,
+        hours: workHours,
+      });
     }
-    try {
-      await newPage.close();
-    } catch (e) {
-      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
-    }
+    await newPage.close();
   }
 
   public async crawl(): Promise<void> {
@@ -179,16 +165,22 @@ export default class TwogisClass {
     await this.searchClick();
     await this.searchFilter(this.filter);
     try {
-      while (await page.$('div.pagination__arrow._right') !== null) {
+      const next = await page.$('div.pagination__arrow._right');
+      while (next !== null) {
         await this.collectCompany();
         await page.waitForSelector(helper.selectors.paginationArrowRight);
         await page.focus(helper.selectors.paginationArrowRight);
         await page.click(helper.selectors.paginationArrowRight);
+        const nextDisabled = await page.$('div.pagination__arrow._right._disabled');
+        if (nextDisabled) {
+          break;
+        }
       }
     } catch (e) {
-      await log.error(`EXCEPTION CAUGHT: ${e}`);
+      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
     }
     // final close operation
+    await log.info(JSON.stringify(this.result));
     await this.terminate();
   }
 }

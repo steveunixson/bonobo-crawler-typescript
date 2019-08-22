@@ -40,7 +40,7 @@ export default class App {
     this.app.use(morgan('dev'));
     this.app.use(new IndexRouter().router);
     this.app.use(new TwogisRouter().router);
-    this.mongo = new MongooseConnection(`mongodb://localhost:${this.mongoPort}/octopus`, {
+    this.mongo = new MongooseConnection(`mongodb://localhost:${this.mongoPort}/twogis`, {
       useNewUrlParser: true,
       autoReconnect: true,
       reconnectTries: 1000000,
