@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "start": "tsc && node ./dist/src/app.js",
+    "start": "tsc && node $NODE_DEBUG_OPTION --inspect ./dist/src/app.js",
     "build": "tsc",
     "pack": "webpack",
     "fix": "node_modules/eslint/bin/eslint.js --ext .ts src/ --fix"

@@ -5,13 +5,25 @@ import helper from '../helpers/TwogisHelper.class';
 import log from '../helpers/WinstonLogger.class';
 import TwogisSchema from '../models/Twogis.model';
 import TwogisInterface from '../interfaces/Twogis.interface';
+import CSVClass from './CSV.class';
 
 export default class TwogisClass {
   private width: number = 1440;
 
   private height: number = 940;
 
-  private timeout: number = 4 * 30000;
+  private timeout: number = 0;
+
+  private fields: string[] = [
+    'phoneNumber',
+    'companyName',
+    'address',
+    'city',
+    'site',
+    'search',
+    'tags',
+    'hours',
+  ];
 
   public url: string;
 
@@ -59,9 +71,11 @@ export default class TwogisClass {
     const page = await browser.newPage();
     try {
       await page.setViewport({ width: this.width, height: this.height });
+      await page.setDefaultTimeout(this.timeout);
       await page.setDefaultNavigationTimeout(this.timeout);
     } catch (e) {
-      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
+      await this.terminate();
+      await log.error(`EXCEPTION CAUGHT ON PAGE LOAD: ${e.toString()}`);
     }
     return page;
   }
@@ -69,13 +83,14 @@ export default class TwogisClass {
   private async searchQuery(): Promise<void> {
     try {
       const page = await this.page;
-      await page.goto(this.url);
+      await page.goto(this.url, { waitUntil: 'load', timeout: 0 });
       await log.info(`Crawler started with url: ${this.url}`);
       await page.waitForSelector(helper.selectors.formSelector);
       await page.focus(helper.selectors.formSelector);
       await page.keyboard.type(this.search);
       await log.info(`Searching: ${this.search}`);
     } catch (e) {
+      await this.terminate();
       await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
     }
   }
@@ -86,6 +101,7 @@ export default class TwogisClass {
       await page.waitForSelector(helper.selectors.submitButton);
       await page.click(helper.selectors.submitButton);
     } catch (e) {
+      await this.terminate();
       await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
     }
   }
@@ -135,6 +151,7 @@ export default class TwogisClass {
     const companyLinks = await this.collectCards();
     for (const link of companyLinks) {
       await newPage.goto(link);
+      await newPage.setDefaultTimeout(this.timeout);
       await newPage.waitForSelector(helper.selectors.companyPhoneToggle);
       await newPage.focus(helper.selectors.companyPhoneToggle);
       await newPage.click(helper.selectors.companyPhoneToggle);
@@ -166,7 +183,9 @@ export default class TwogisClass {
     await this.searchFilter(this.filter);
     try {
       const next = await page.$('div.pagination__arrow._right');
+
       while (next !== null) {
+        await page.waitForNavigation({ waitUntil: ['networkidle0', 'load', 'domcontentloaded'] });
         await this.collectCompany();
         await page.waitForSelector(helper.selectors.paginationArrowRight);
         await page.focus(helper.selectors.paginationArrowRight);
@@ -176,11 +195,12 @@ export default class TwogisClass {
           break;
         }
       }
+
+      await CSVClass.writeCSV(this.fields, JSON.stringify(this.result));
+      await this.terminate();
     } catch (e) {
+      await this.terminate();
       await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
     }
-    // final close operation
-    await log.info(JSON.stringify(this.result));
-    await this.terminate();
   }
 }
