@@ -4,3 +4,4 @@ pkg
 error.log.json
 .idea
 .env
+*.csv

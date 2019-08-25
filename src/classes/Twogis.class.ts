@@ -195,12 +195,12 @@ export default class TwogisClass {
           break;
         }
       }
-
-      await CSVClass.writeCSV(this.fields, JSON.stringify(this.result));
-      await this.terminate();
     } catch (e) {
       await this.terminate();
+      await CSVClass.writeCSV(this.fields, JSON.stringify(this.result));
       await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
     }
+    await CSVClass.writeCSV(this.fields, JSON.stringify(this.result));
+    await this.terminate();
   }
 }
