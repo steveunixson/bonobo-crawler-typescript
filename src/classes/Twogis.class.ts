@@ -6,13 +6,15 @@ import log from '../helpers/WinstonLogger.class';
 import TwogisSchema from '../models/Twogis.model';
 import TwogisInterface from '../interfaces/Twogis.interface';
 import CSVClass from './CSV.class';
+import MailerClass, { MailOptions } from './Mailer.class';
+import ConfigClass from './Config.class';
 
 export default class TwogisClass {
   private width: number = 1440;
 
   private height: number = 940;
 
-  private timeout: number = 0;
+  private timeout: number = 4 * 30000;
 
   private fields: string[] = [
     'phoneNumber',
@@ -33,11 +35,15 @@ export default class TwogisClass {
 
   public filter: string;
 
+  public searchCity: string;
+
   public browser: Promise<Browser>;
 
   public page: Promise<Page>;
 
   public result: TwogisInterface[] = [];
+
+  private readonly mailConfig: MailOptions;
 
   public constructor(req: express.Request) {
     this.search = req.body.search;
@@ -52,17 +58,24 @@ export default class TwogisClass {
       ],
     });
 
+    this.searchCity = '';
+
+    this.mailConfig = {
+      to: this.sendTo,
+      from: 'unixson@gmail.com',
+      subject: '',
+      text: '',
+    };
+
     this.page = this.initPage();
   }
-
-  // Promise<TwogisModelInterface[]>
 
   public async terminate(): Promise<void> {
     try {
       const browser = await this.browser;
       await browser.close();
     } catch (e) {
-      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT terminate: ${e.toString()}`);
     }
   }
 
@@ -71,11 +84,10 @@ export default class TwogisClass {
     const page = await browser.newPage();
     try {
       await page.setViewport({ width: this.width, height: this.height });
-      await page.setDefaultTimeout(this.timeout);
       await page.setDefaultNavigationTimeout(this.timeout);
     } catch (e) {
       await this.terminate();
-      await log.error(`EXCEPTION CAUGHT ON PAGE LOAD: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT initPage: ${e.toString()}`);
     }
     return page;
   }
@@ -86,12 +98,13 @@ export default class TwogisClass {
       await page.goto(this.url, { waitUntil: 'load', timeout: 0 });
       await log.info(`Crawler started with url: ${this.url}`);
       await page.waitForSelector(helper.selectors.formSelector);
+      this.searchCity = await helper.getData(page, helper.selectors.searchCity, 'innerText');
       await page.focus(helper.selectors.formSelector);
       await page.keyboard.type(this.search);
       await log.info(`Searching: ${this.search}`);
     } catch (e) {
       await this.terminate();
-      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT searchQuery: ${e.toString()}`);
     }
   }
 
@@ -102,7 +115,7 @@ export default class TwogisClass {
       await page.click(helper.selectors.submitButton);
     } catch (e) {
       await this.terminate();
-      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT searchClick: ${e.toString()}`);
     }
   }
 
@@ -123,7 +136,7 @@ export default class TwogisClass {
         }
       }
     } catch (e) {
-      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT searchFilter: ${e.toString()}`);
     }
   }
 
@@ -142,38 +155,65 @@ export default class TwogisClass {
       this.result.push(company);
     } catch (e) {
       this.result.push(company);
-      log.error(`EXCEPTION: ${e.toString()}`);
+      log.error(`EXCEPTION saveCompany: ${e.toString()}`);
     }
   }
 
   private async collectCompany(): Promise<void> {
     const newPage = await this.initPage();
     const companyLinks = await this.collectCards();
+
     for (const link of companyLinks) {
       await newPage.goto(link);
-      await newPage.setDefaultTimeout(this.timeout);
-      await newPage.waitForSelector(helper.selectors.companyPhoneToggle);
-      await newPage.focus(helper.selectors.companyPhoneToggle);
-      await newPage.click(helper.selectors.companyPhoneToggle);
-      const phones = await helper.getData(newPage, helper.selectors.companyVisiblePhones, 'innerText');
-      const name = await helper.getData(newPage, helper.selectors.companyName, 'innerText');
-      const address = await helper.getData(newPage, helper.selectors.companyAddress, 'innerText');
-      const city = await helper.getData(newPage, helper.selectors.companyCity, 'innerText');
-      const tags = await helper.getData(newPage, helper.selectors.companyTags, 'innerText');
-      const workHours = await helper.getData(newPage, helper.selectors.companyWorkHours, 'innerText');
-      const site = await helper.getData(newPage, helper.selectors.companyWebSite, 'innerText');
-      await this.saveCompany({
-        phoneNumber: phones,
-        companyName: name,
-        address,
-        city,
-        site,
-        search: this.search,
-        tags,
-        hours: workHours,
-      });
+      try {
+        await newPage.waitForSelector(helper.selectors.companyPhoneToggle);
+        await newPage.focus(helper.selectors.companyPhoneToggle);
+        await newPage.click(helper.selectors.companyPhoneToggle);
+        const phones = await helper.getData(newPage, helper.selectors.companyVisiblePhones, 'innerText');
+        const name = await helper.getData(newPage, helper.selectors.companyName, 'innerText');
+        const address = await helper.getData(newPage, helper.selectors.companyAddress, 'innerText');
+        const city = await helper.getData(newPage, helper.selectors.companyCity, 'innerText');
+        const tags = await helper.getData(newPage, helper.selectors.companyTags, 'innerText');
+        const workHours = await helper.getData(newPage, helper.selectors.companyWorkHours, 'innerText');
+        const site = await helper.getData(newPage, helper.selectors.companyWebSite, 'innerText');
+        await this.saveCompany({
+          phoneNumber: phones,
+          companyName: name,
+          address,
+          city,
+          site,
+          search: this.search,
+          tags,
+          hours: workHours,
+        });
+      } catch (e) {
+        log.error(`EXCEPTION collectCompany: ${e.toString()}`);
+      }
     }
     await newPage.close();
+  }
+
+  private async sendMail(): Promise<void> {
+    try {
+      const time = new Date().getTime();
+      const fileAttachment = `${this.searchCity}_${this.search.replace(' ', '_')}_${time}.csv`;
+      await this.terminate();
+      const path = new ConfigClass().CSVPATH();
+      await CSVClass.writeCSV({
+        fields: this.fields,
+        data: this.result,
+        name: fileAttachment,
+        path,
+      });
+      await log.info(`Sending: ${fileAttachment}`);
+      this.mailConfig.text = `${this.search} в городе ${this.searchCity}`;
+      this.mailConfig.subject = `J.A.R.V.I.S: БАЗА ${this.searchCity}`;
+      const mail = new MailerClass(this.mailConfig);
+      await mail.attachments(path, fileAttachment);
+      await mail.send();
+    } catch (e) {
+      log.error(`EXCEPTION CAUGHT sendMail: ${e.toString()}`);
+    }
   }
 
   public async crawl(): Promise<void> {
@@ -181,26 +221,36 @@ export default class TwogisClass {
     await this.searchQuery();
     await this.searchClick();
     await this.searchFilter(this.filter);
-    try {
-      const next = await page.$('div.pagination__arrow._right');
 
-      while (next !== null) {
-        await page.waitForNavigation({ waitUntil: ['networkidle0', 'load', 'domcontentloaded'] });
-        await this.collectCompany();
-        await page.waitForSelector(helper.selectors.paginationArrowRight);
-        await page.focus(helper.selectors.paginationArrowRight);
-        await page.click(helper.selectors.paginationArrowRight);
-        const nextDisabled = await page.$('div.pagination__arrow._right._disabled');
-        if (nextDisabled) {
-          break;
-        }
-      }
+    try {
+      await page.waitForSelector('div.pagination__pages', { timeout: 5000 });
     } catch (e) {
-      await this.terminate();
-      await CSVClass.writeCSV(this.fields, JSON.stringify(this.result));
-      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT crawl: ${e.toString()}`);
+    } finally {
+      try {
+        const next = await page.$('div.pagination__arrow._right');
+
+        const searchPages = await page.$('div.pagination__pages');
+
+        if (!searchPages) {
+          await this.collectCompany();
+        } else {
+          while (next !== null) {
+            await this.collectCompany();
+            await page.waitForSelector(helper.selectors.paginationArrowRight);
+            await page.focus(helper.selectors.paginationArrowRight);
+            await page.click(helper.selectors.paginationArrowRight);
+            const nextDisabled = await page.$('div.pagination__arrow._right._disabled');
+            if (nextDisabled) {
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        await log.error(`EXCEPTION CAUGHT crawl: ${e.toString()}`);
+      } finally {
+        await this.sendMail();
+      }
     }
-    await CSVClass.writeCSV(this.fields, JSON.stringify(this.result));
-    await this.terminate();
   }
 }

@@ -16,7 +16,7 @@ export default class TwogisHelperClass {
       const Array = await Promise.all(promise);
       return Array.join();
     } catch (e) {
-      await log.error(`EXCEPTION CAUGHT: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT getData: ${e}`);
     }
     return 'Not Found!';
   }
@@ -26,6 +26,7 @@ export default class TwogisHelperClass {
     formSelector: 'div#module-1-3-1 > div > input',
     submitButton: '#module-1-3 > div.searchBar__forms > div > form > button.searchBar__submit._directory',
     paginationArrowRight: 'div.pagination__arrow._right',
+    searchCity: '.dashboard__cityNameTitle',
     miniCards: '.miniCard__headerTitleLink',
     filtersWholeSale: 'label.checkbox._inline',
     companyCard: 'div.card__scrollerIn',

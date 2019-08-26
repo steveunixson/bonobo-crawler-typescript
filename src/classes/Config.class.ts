@@ -1,4 +1,7 @@
+import fs from 'fs';
+import os from 'os';
 import log from '../helpers/WinstonLogger.class';
+
 
 export default class ConfigClass {
   private port: number;
@@ -7,10 +10,13 @@ export default class ConfigClass {
 
   private socketPort: number;
 
+  private csvPath: string;
+
   public constructor() {
     this.port = 3000;
-    this.mongoPort = 27017;
+    this.mongoPort = 32769;
     this.socketPort = 9020;
+    this.csvPath = './';
   }
 
   public PORT(): number {
@@ -31,5 +37,16 @@ export default class ConfigClass {
       log.info(`NO MONGODB PORT FOUND IN THE .env FILE. USING DEFAULT ${this.mongoPort} PORT`);
     }
     return this.mongoPort;
+  }
+
+  public CSVPATH(): string {
+    const homeDir = os.homedir();
+    const crawlerDir = 'JARVIS';
+    if (!fs.existsSync(`${homeDir}/${crawlerDir}/`)) {
+      fs.mkdirSync(`${homeDir}/${crawlerDir}/`);
+      log.info(`Created directory: ${homeDir}/${crawlerDir}/`);
+    }
+    this.csvPath = `${homeDir}/${crawlerDir}`;
+    return this.csvPath;
   }
 }
