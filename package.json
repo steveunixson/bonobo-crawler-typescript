@@ -3,7 +3,10 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "start": "tsc && node $NODE_DEBUG_OPTION ./dist/app.js",
+    "start": "node ./dist/app.js",
+    "dev-server": "tsc && node $NODE_DEBUG_OPTION --inspect=9255 ./dist/app.js",
+    "dev-client": "babel-node start-client.js",
+    "dev": "NODE_ENV='dev' concurrently --kill-others \"npm run dev-server\" \"npm run dev-client\"",
     "build": "tsc",
     "pack": "webpack",
     "fix": "node_modules/eslint/bin/eslint.js --ext .ts src/ --fix"
@@ -39,7 +42,15 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^1.10.2",
     "@typescript-eslint/parser": "^1.10.2",
+    "babel-cli": "6.26.0",
+    "babel-core": "6.26.3",
+    "babel-eslint": "8.2.3",
+    "babel-loader": "7.1.2",
+    "babel-polyfill": "6.26.0",
+    "babel-preset-es2017": "6.24.1",
+    "babel-preset-stage-0": "6.24.1",
     "chai": "^4.2.0",
+    "concurrently": "^3.1.0",
     "eslint": "^5.12.1",
     "eslint-config-airbnb": "^17.1.0",
     "eslint-config-airbnb-typescript": "^4.0.0",
@@ -53,7 +64,7 @@
     "pkg": "^4.4.0",
     "ts-loader": "^6.0.2",
     "typescript": "^3.5.1",
-    "webpack": "^4.30.0",
+    "webpack": "4.29.6",
     "webpack-cli": "^3.3.2",
     "webpack-node-externals": "^1.7.2"
   },

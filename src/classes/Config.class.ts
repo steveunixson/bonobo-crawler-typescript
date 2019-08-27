@@ -13,7 +13,7 @@ export default class ConfigClass {
   private csvPath: string;
 
   public constructor() {
-    this.port = 3000;
+    this.port = 3200;
     this.mongoPort = 32769;
     this.socketPort = 9020;
     this.csvPath = './';

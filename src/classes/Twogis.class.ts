@@ -166,7 +166,7 @@ export default class TwogisClass {
     for (const link of companyLinks) {
       await newPage.goto(link);
       try {
-        await newPage.waitForSelector(helper.selectors.companyPhoneToggle);
+        await newPage.waitForSelector(helper.selectors.companyPhoneToggle, { timeout: 2000 });
         await newPage.focus(helper.selectors.companyPhoneToggle);
         await newPage.click(helper.selectors.companyPhoneToggle);
         const phones = await helper.getData(newPage, helper.selectors.companyVisiblePhones, 'innerText');
@@ -207,7 +207,7 @@ export default class TwogisClass {
       });
       await log.info(`Sending: ${fileAttachment}`);
       this.mailConfig.text = `${this.search} в городе ${this.searchCity}`;
-      this.mailConfig.subject = `J.A.R.V.I.S: БАЗА ${this.searchCity}`;
+      this.mailConfig.subject = `БАЗА ${this.searchCity}`;
       const mail = new MailerClass(this.mailConfig);
       await mail.attachments(path, fileAttachment);
       await mail.send();
@@ -223,7 +223,7 @@ export default class TwogisClass {
     await this.searchFilter(this.filter);
 
     try {
-      await page.waitForSelector('div.pagination__pages', { timeout: 5000 });
+      await page.waitForSelector('div.pagination__pages', { timeout: 2000 });
     } catch (e) {
       await log.error(`EXCEPTION CAUGHT crawl: ${e.toString()}`);
     } finally {
