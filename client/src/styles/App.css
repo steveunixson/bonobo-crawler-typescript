@@ -1,1 +1,15 @@
+.territory {
+    width: 80px;
+}
 
+.retailer {
+    width: 165px;
+}
+
+.task-type {
+    width: 145px;
+}
+
+.selection-cell {
+    width: 10em;
+}
