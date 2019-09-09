@@ -1,4 +1,4 @@
-/* eslint-disable no-await-in-loop,no-restricted-syntax */
+/* eslint-disable no-await-in-loop,no-restricted-syntax,max-len,prefer-destructuring */
 import puppeteer, { Browser, Page } from 'puppeteer';
 import express from 'express';
 import helper from '../helpers/TwogisHelper.class';
@@ -148,13 +148,15 @@ export default class TwogisClass {
     return Promise.all(href);
   }
 
+  private RemoveFormArray = (array: TwogisInterface[], number: string): TwogisInterface[] => array
+    .filter((el: TwogisInterface): boolean => el.companyName !== number);
+
   private async saveCompany(company: TwogisInterface): Promise<void> {
     const twogis = new TwogisSchema(company);
     try {
       await twogis.save();
       this.result.push(company);
     } catch (e) {
-      this.result.push(company);
       log.error(`EXCEPTION saveCompany: ${e.toString()}`);
     }
   }
@@ -199,9 +201,11 @@ export default class TwogisClass {
       const fileAttachment = `${this.searchCity}_${this.search.replace(' ', '_')}_${time}.csv`;
       await this.terminate();
       const path = new ConfigClass().CSVPATH();
+      const arr = this.result.map((company: TwogisInterface): TwogisInterface[] => this.RemoveFormArray(this.result, company.companyName));
+      const result = arr.slice(-1)[0];
       await CSVClass.writeCSV({
         fields: this.fields,
-        data: this.result,
+        data: result,
         name: fileAttachment,
         path,
       });
@@ -223,34 +227,20 @@ export default class TwogisClass {
     await this.searchFilter(this.filter);
 
     try {
-      await page.waitForSelector('div.pagination__pages', { timeout: 2000 });
-    } catch (e) {
-      await log.error(`EXCEPTION CAUGHT crawl: ${e.toString()}`);
-    } finally {
-      try {
-        const next = await page.$('div.pagination__arrow._right');
-
-        const searchPages = await page.$('div.pagination__pages');
-
-        if (!searchPages) {
-          await this.collectCompany();
-        } else {
-          while (next !== null) {
-            await this.collectCompany();
-            await page.waitForSelector(helper.selectors.paginationArrowRight);
-            await page.focus(helper.selectors.paginationArrowRight);
-            await page.click(helper.selectors.paginationArrowRight);
-            const nextDisabled = await page.$('div.pagination__arrow._right._disabled');
-            if (nextDisabled) {
-              break;
-            }
-          }
+      while (await page.$('div.pagination__arrow._right') !== null) {
+        await page.waitForSelector(helper.selectors.paginationArrowRight);
+        await page.focus(helper.selectors.paginationArrowRight);
+        await this.collectCompany();
+        await page.click(helper.selectors.paginationArrowRight);
+        const nextDisabled = await page.$('div.pagination__arrow._right._disabled');
+        if (nextDisabled) {
+          break;
         }
-      } catch (e) {
-        await log.error(`EXCEPTION CAUGHT crawl: ${e.toString()}`);
-      } finally {
-        await this.sendMail();
       }
+    } catch (e) {
+      log.error(e.toString());
+    } finally {
+      await this.sendMail();
     }
   }
 }
