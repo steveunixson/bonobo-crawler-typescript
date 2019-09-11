@@ -1,21 +1,14 @@
 /* eslint-disable no-await-in-loop,no-restricted-syntax,max-len,prefer-destructuring */
-import puppeteer, { Browser, Page } from 'puppeteer';
-import express from 'express';
 import helper from '../helpers/TwogisHelper.class';
 import log from '../helpers/WinstonLogger.class';
 import TwogisSchema from '../models/Twogis.model';
 import TwogisInterface from '../interfaces/Twogis.interface';
 import CSVClass from './CSV.class';
-import MailerClass, { MailOptions } from './Mailer.class';
+import MailerClass from './Mailer.class';
 import ConfigClass from './Config.class';
+import CrawlerClass from './Crawler.class';
 
-export default class TwogisClass {
-  private width: number = 1440;
-
-  private height: number = 940;
-
-  private timeout: number = 4 * 30000;
-
+export default class TwogisClass extends CrawlerClass {
   private fields: string[] = [
     'phoneNumber',
     'companyName',
@@ -27,70 +20,7 @@ export default class TwogisClass {
     'hours',
   ];
 
-  public url: string;
-
-  public search: string;
-
-  public sendTo: string;
-
-  public filter: string;
-
-  public searchCity: string;
-
-  public browser: Promise<Browser>;
-
-  public page: Promise<Page>;
-
   public result: TwogisInterface[] = [];
-
-  private readonly mailConfig: MailOptions;
-
-  public constructor(req: express.Request) {
-    this.search = req.body.search;
-    this.sendTo = req.body.sendTo;
-    this.filter = req.body.filter;
-    this.url = req.body.url;
-
-    this.browser = puppeteer.launch({
-      headless: false,
-      args: [
-        `--window-size=${this.width},${this.height}`, '--no-sandbox', '--disable-setuid-sandbox',
-      ],
-    });
-
-    this.searchCity = '';
-
-    this.mailConfig = {
-      to: this.sendTo,
-      from: 'unixson@gmail.com',
-      subject: '',
-      text: '',
-    };
-
-    this.page = this.initPage();
-  }
-
-  public async terminate(): Promise<void> {
-    try {
-      const browser = await this.browser;
-      await browser.close();
-    } catch (e) {
-      await log.error(`EXCEPTION CAUGHT terminate: ${e.toString()}`);
-    }
-  }
-
-  private async initPage(): Promise<Page> {
-    const browser = await this.browser;
-    const page = await browser.newPage();
-    try {
-      await page.setViewport({ width: this.width, height: this.height });
-      await page.setDefaultNavigationTimeout(this.timeout);
-    } catch (e) {
-      await this.terminate();
-      await log.error(`EXCEPTION CAUGHT initPage: ${e.toString()}`);
-    }
-    return page;
-  }
 
   private async searchQuery(): Promise<void> {
     try {
@@ -147,9 +77,6 @@ export default class TwogisClass {
     const href = await cards.map(async (el): Promise<string> => (await el.getProperty('href')).jsonValue());
     return Promise.all(href);
   }
-
-  private RemoveFormArray = (array: TwogisInterface[], number: string): TwogisInterface[] => array
-    .filter((el: TwogisInterface): boolean => el.companyName !== number);
 
   private async saveCompany(company: TwogisInterface): Promise<void> {
     const twogis = new TwogisSchema(company);
