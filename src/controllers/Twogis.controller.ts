@@ -1,24 +1,24 @@
 import express from 'express';
+import { validationResult } from 'express-validator/check';
 import JSONResponse from '../helpers/JSONResponse.class';
 import TwogisClass from '../classes/Twogis.class';
+import TwogisRequestInterface from '../interfaces/TwogisRequest.interface';
 
 export default class TwogisController {
-  public crawlTwogis = (req: express.Request, res: express.Response): void => {
-    if (req.body.search && req.body.url && req.body.sendTo) {
-      const twogis = new TwogisClass(req);
-      twogis.crawl()
-        .then((): void => {})
-        .catch((e): void => {
-          console.log(e.toString());
-          twogis.terminate()
-            .then((): void => {})
-            .catch((ex): void => {
-              console.log(ex.toString());
-            });
-        });
+  public crawlTwogis = async (req: express.Request, res: express.Response): Promise<void> => {
+    const { body } = req;
+    try {
+      await validationResult(req);
       JSONResponse.success(req, res, []);
-    } else {
-      JSONResponse.serverError(req, res, [], 'Bad request');
+      for await (const task of body) {
+        const twogis = new TwogisClass(task as TwogisRequestInterface);
+        await twogis.crawl()
+          .catch(async (): Promise<void> => {
+            await twogis.terminate();
+          });
+      }
+    } catch (e) {
+      JSONResponse.serverError(req, res, [e.toString()], 'Bad request');
     }
   }
 }

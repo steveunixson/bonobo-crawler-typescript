@@ -4,6 +4,7 @@ import log from '../helpers/WinstonLogger.class';
 import TwogisInterface from '../interfaces/Twogis.interface';
 import { MailOptions } from './Mailer.class';
 import CrawlerHelper from '../helpers/Crawler.helper';
+import TwogisRequestInterface from '../interfaces/TwogisRequest.interface';
 
 export default class CrawlerClass {
   protected search: string;
@@ -28,11 +29,11 @@ export default class CrawlerClass {
 
   protected page: Promise<Page>;
 
-  public constructor(req: express.Request) {
-    this.search = req.body.search;
-    this.sendTo = req.body.sendTo;
-    this.filter = req.body.filter;
-    this.url = req.body.url;
+  public constructor(task: TwogisRequestInterface) {
+    this.search = task.search;
+    this.sendTo = task.sendTo;
+    this.filter = task.filter;
+    this.url = task.url;
 
     this.browser = puppeteer.launch({
       headless: false,
