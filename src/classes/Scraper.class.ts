@@ -30,9 +30,11 @@ export default class ScraperClass implements ScraperInterface {
       headers: { 'user-agent': this.userAgent },
     };
     if (url) {
-      return this.api.get(url, config);
+      const { data } = await this.api.get(url, config);
+      return data;
     }
-    return this.api.get('/', config);
+    const { data } = await this.api.get('/', config);
+    return data;
   }
 
   public setUserAgent(userAgent: string): void {
