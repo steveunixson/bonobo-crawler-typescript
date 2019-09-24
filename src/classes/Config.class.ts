@@ -14,7 +14,7 @@ export default class ConfigClass {
 
   public constructor() {
     this.port = 3200;
-    this.mongoPort = 32769;
+    this.mongoPort = 27017;
     this.socketPort = 9020;
     this.csvPath = './';
   }
