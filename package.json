@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "start": "tsc && node ./dist/app.js",
-    "dev-server": "node $NODE_DEBUG_OPTION ./dist/app.js",
-    "dev-client": "babel-node start-client.js",
+    "dev-server": "tsc && node $NODE_DEBUG_OPTION ./dist/app.js",
+    "dev-client": "npm start --prefix client",
     "dev": "NODE_ENV='dev' concurrently --kill-others \"npm run dev-server\" \"npm run dev-client\"",
     "build": "tsc",
     "pack": "webpack",
