@@ -10,6 +10,7 @@ import ConfigClass from './Config.class';
 import IndexRouter from '../routes/Index.router';
 import log from '../helpers/WinstonLogger.class';
 import TwogisRouter from '../routes/Twogis.router';
+import GoogleRouter from '../routes/Google.router';
 
 export default class App {
   private readonly app: Express;
@@ -40,6 +41,7 @@ export default class App {
     this.app.use(morgan('dev'));
     this.app.use(new IndexRouter().router);
     this.app.use(new TwogisRouter().router);
+    this.app.use(new GoogleRouter().router);
     this.mongo = new MongooseConnection(`mongodb://localhost:${this.mongoPort}/twogis`, {
       useNewUrlParser: true,
       autoReconnect: true,

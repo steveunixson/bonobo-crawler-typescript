@@ -34,7 +34,7 @@ export default class TwogisClass extends CrawlerClass {
       await log.info(`Searching: ${this.search}`);
     } catch (e) {
       await this.terminate();
-      await log.error(`EXCEPTION CAUGHT searchQuery: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT ${this.searchQuery.name}: ${e.toString()}`);
     }
   }
 
@@ -45,7 +45,7 @@ export default class TwogisClass extends CrawlerClass {
       await page.click(helper.selectors.submitButton);
     } catch (e) {
       await this.terminate();
-      await log.error(`EXCEPTION CAUGHT searchClick: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT ${this.searchClick.name}: ${e.toString()}`);
     }
   }
 
@@ -66,7 +66,7 @@ export default class TwogisClass extends CrawlerClass {
         }
       }
     } catch (e) {
-      await log.error(`EXCEPTION CAUGHT searchFilter: ${e.toString()}`);
+      await log.error(`EXCEPTION CAUGHT ${this.searchFilter.name}: ${e.toString()}`);
     }
   }
 
@@ -84,7 +84,7 @@ export default class TwogisClass extends CrawlerClass {
       await twogis.save();
       this.result.push(company);
     } catch (e) {
-      log.error(`EXCEPTION saveCompany: ${e.toString()}`);
+      log.error(`EXCEPTION ${this.saveCompany.name}: ${e.toString()}`);
     }
   }
 
@@ -116,7 +116,7 @@ export default class TwogisClass extends CrawlerClass {
           hours: workHours,
         });
       } catch (e) {
-        log.error(`EXCEPTION collectCompany: ${e.toString()}`);
+        log.error(`EXCEPTION ${this.collectCompany.name}: ${e.toString()}`);
       }
     }
     await newPage.close();
@@ -143,7 +143,7 @@ export default class TwogisClass extends CrawlerClass {
       await mail.attachments(path, fileAttachment);
       await mail.send();
     } catch (e) {
-      log.error(`EXCEPTION CAUGHT sendMail: ${e.toString()}`);
+      log.error(`EXCEPTION CAUGHT ${this.sendMail.name}: ${e.toString()}`);
     }
   }
 

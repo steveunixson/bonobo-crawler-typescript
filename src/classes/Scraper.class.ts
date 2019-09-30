@@ -21,7 +21,7 @@ export default class ScraperClass implements ScraperInterface {
     this.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3835.0 Safari/537.36';
     this.api = axios.create({
       baseURL: this.url,
-      timeout: 1000,
+      timeout: 20000,
     });
   }
 
