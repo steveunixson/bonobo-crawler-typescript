@@ -15,14 +15,14 @@ import cheerio from 'cheerio';
 import ScraperClass from './Scraper.class';
 
 export default class GoogleClass extends ScraperClass {
-  public async scrape(): Promise<string[]> {
+  public async scrape(): Promise<Set<string>> {
     const html = await this.get('https://google.com/search?q=ubuntu');
     const $ = cheerio.load(html);
-    const arr: string[] = [];
+    const set: Set<string> = new Set();
     const test = $('div > bkWMgd').html();
     if (test) {
-      arr.push(test);
+      set.add(test);
     }
-    return arr;
+    return set;
   }
 }
