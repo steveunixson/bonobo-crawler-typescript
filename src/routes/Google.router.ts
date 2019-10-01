@@ -18,6 +18,6 @@ export default class GoogleRouter extends GoogleController {
 
   public initializeRoutes(): void {
     // add routers here
-    this.router.get(this.path, this.index);
+    this.router.post(this.path, this.index);
   }
 }

@@ -1,4 +1,3 @@
-import express from 'express';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import log from '../helpers/WinstonLogger.class';
 import TwogisInterface from '../interfaces/Twogis.interface';

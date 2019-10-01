@@ -11,18 +11,37 @@
 // ignore hidden inputs
 // collect hrefs on the page
 
-import cheerio from 'cheerio';
+import { JSDOM } from 'jsdom';
 import ScraperClass from './Scraper.class';
 
 export default class GoogleClass extends ScraperClass {
-  public async scrape(): Promise<Set<string>> {
-    const html = await this.get('https://google.com/search?q=ubuntu');
-    const $ = cheerio.load(html);
-    const set: Set<string> = new Set();
-    const test = $('div > bkWMgd').html();
-    if (test) {
-      set.add(test);
+  protected getTextByAttribute(document: Document, selector: string, attribute: string): string[] {
+    const arr: string[] = [];
+    document.querySelectorAll(selector).forEach((el): void => {
+      const href = el.getAttribute(attribute);
+      if (href) {
+        arr.push(href);
+      }
+    });
+    return arr;
+  }
+
+  public async scrape(): Promise<void> {
+    const html = await this.get();
+    const { window: { document } } = new JSDOM(html);
+    const urls = this.getTextByAttribute(document, '.r > a', 'href');
+    for await (const url of urls) {
+      const Html = await this.get(url);
+      const dom = new JSDOM(Html);
+      console.log('SENDING REQUEST TO', url);
+      const arr: string[] = [];
+      dom.window.document.querySelectorAll('form').forEach((el): void => {
+        const href = el.outerHTML;
+        if (href) {
+          arr.push(href);
+        }
+      });
+      console.log(arr);
     }
-    return set;
   }
 }
